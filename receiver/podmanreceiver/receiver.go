@@ -28,7 +28,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type podmanReceiver struct {
+type podmanReceiverStruct struct {
 	config        *Config
 	set           component.ReceiverCreateSettings
 	clientFactory clientFactory
@@ -51,7 +51,7 @@ func newReceiver(
 		clientFactory = newPodmanClient
 	}
 
-	recv := &podmanReceiver{
+	recv := &podmanReceiverStruct{
 		config:        config,
 		clientFactory: clientFactory,
 		set:           set,
@@ -64,7 +64,7 @@ func newReceiver(
 	return scraperhelper.NewScraperControllerReceiver(&recv.config.ScraperControllerSettings, set, nextConsumer, scraperhelper.AddScraper(scrp))
 }
 
-func (r *podmanReceiver) start(context.Context, component.Host) error {
+func (r *podmanReceiverStruct) start(context.Context, component.Host) error {
 	c, err := r.clientFactory(r.set.Logger, r.config)
 	if err == nil {
 		r.client = c
@@ -72,7 +72,7 @@ func (r *podmanReceiver) start(context.Context, component.Host) error {
 	return err
 }
 
-func (r *podmanReceiver) scrape(context.Context) (pdata.Metrics, error) {
+func (r *podmanReceiverStruct) scrape(context.Context) (pdata.Metrics, error) {
 	var err error
 
 	stats, err := r.client.stats()

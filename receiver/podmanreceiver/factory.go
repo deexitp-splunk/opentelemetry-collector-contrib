@@ -66,4 +66,4 @@ func createMetricsReceiver(
 	return dsr, nil
 }
 
-var receivers = map[*Config]*podmanReceiver{}
+var receivers = map[*Config]*podmanReceiverStruct{}
