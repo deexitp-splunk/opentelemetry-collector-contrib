@@ -22,6 +22,13 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 )
 
+type podmanReceiverStruct struct {
+	config        *Config
+	set           component.ReceiverCreateSettings
+	clientFactory interface{}
+	client        interface{}
+}
+
 func newReceiver(
 	_ context.Context,
 	settings component.ReceiverCreateSettings,
