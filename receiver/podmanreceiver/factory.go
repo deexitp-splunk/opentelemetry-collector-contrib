@@ -16,7 +16,6 @@ package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collec
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -64,8 +63,5 @@ func createMetricsReceiver(
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(receivers)
 	return dsr, nil
 }
-
-var receivers = map[*Config]*receiver{}
