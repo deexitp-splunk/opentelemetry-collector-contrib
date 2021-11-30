@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/model/pdata"
-	"go.opentelemetry.io/collector/obsreport"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 	"go.uber.org/zap"
 )
@@ -34,19 +33,15 @@ type receiver struct {
 	set           component.ReceiverCreateSettings
 	clientFactory clientFactory
 	client        client
-
-	metricsComponent component.MetricsReceiver
-	obsrecv          *obsreport.Receiver
-	logsConsumer     consumer.Logs
-	metricsConsumer  consumer.Metrics
 }
 
 func newReceiver(
 	_ context.Context,
 	set component.ReceiverCreateSettings,
 	config *Config,
+	nextConsumer consumer.Metrics,
 	clientFactory clientFactory,
-) (*receiver, error) {
+) (component.MetricsReceiver, error) {
 	err := config.Validate()
 	if err != nil {
 		return nil, err
@@ -62,56 +57,11 @@ func newReceiver(
 		set:           set,
 	}
 
-	return recv, err
-}
-
-func (r *receiver) registerMetricsConsumer(mc consumer.Metrics, set component.ReceiverCreateSettings) error {
-	r.metricsConsumer = mc
-	scrp, err := scraperhelper.NewScraper(typeStr, r.scrape, scraperhelper.WithStart(r.start))
+	scrp, err := scraperhelper.NewScraper(typeStr, recv.scrape, scraperhelper.WithStart(recv.start))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	r.metricsComponent, err = scraperhelper.NewScraperControllerReceiver(&r.config.ScraperControllerSettings, set, mc, scraperhelper.AddScraper(scrp))
-	return err
-}
-
-func (r *receiver) registerLogsConsumer(lc consumer.Logs) {
-	r.logsConsumer = lc
-}
-
-func (r *receiver) Start(ctx context.Context, host component.Host) error {
-	if r.logsConsumer != nil {
-		go r.handleEvents(ctx)
-	}
-	if r.metricsConsumer != nil {
-		er := make (chan error)
-		go func() {
-			err := r.metricsComponent.Start(ctx, host)
-			if err != nil {
-				er <- err
-			}
-			close(er)
-		}()
-		error := <- er
-		return error
-	}
-	if r.logsConsumer == nil {
-		r.set.Logger.Warn("Logs Receiver is not set")
-	}
-	if r.metricsConsumer == nil {
-		r.set.Logger.Warn("Metrics Receiver is not set")
-	}
-	return nil
-}
-
-func (r *receiver) Shutdown(ctx context.Context) error {
-	if r.metricsConsumer != nil {
-		err := r.metricsComponent.Shutdown(ctx)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return scraperhelper.NewScraperControllerReceiver(&recv.config.ScraperControllerSettings, set, nextConsumer, scraperhelper.AddScraper(scrp))
 }
 
 func (r *receiver) start(context.Context, component.Host) error {
@@ -136,36 +86,4 @@ func (r *receiver) scrape(context.Context) (pdata.Metrics, error) {
 		translateStatsToMetrics(&stats[i], time.Now(), md.ResourceMetrics().AppendEmpty())
 	}
 	return md, nil
-}
-
-func (r *receiver) handleEvents(ctx context.Context) {
-	c, err := r.clientFactory(r.set.Logger, r.config)
-	if err == nil {
-		r.client = c
-	}
-	if err != nil {
-		r.set.Logger.Error("error fetching/processing events", zap.Error(err))
-	}
-
-	events, _ := r.client.events(r.set.Logger, r.config)
-	if err != nil {
-		r.set.Logger.Error("error fetching stats", zap.Error(err))
-	}
-	for {
-		select {
-		case event := <-events:
-			ld, err := traslateEventsToLogs(r.set.Logger, event)
-			if err != nil {
-				r.set.Logger.Error("Failed to translate into logs", zap.Error(err))
-			}
-			decodeErr := r.logsConsumer.ConsumeLogs(ctx, ld)
-			r.obsrecv.EndLogsOp(ctx, typeStr, len(events), decodeErr)
-			if decodeErr != nil {
-				r.set.Logger.Error("Something went wrong")
-			}
-		case <-ctx.Done():
-			r.set.Logger.Info("Stopping the channel")
-			close(events)
-		}
-	}
 }

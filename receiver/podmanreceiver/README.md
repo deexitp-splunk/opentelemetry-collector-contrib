@@ -5,10 +5,7 @@ on a configured interval.  These stats are for container
 resource usage of cpu, memory, network, and the
 [blkio controller](https://www.kernel.org/doc/Documentation/cgroup-v1/blkio-controller.txt).
 
-This receiver also queries the Podman service API to fetch life cycle events for all running containers and pods.
-These events shows that containers/pods are running/died/started etc. 
-
-Supported pipeline types: metrics, logs
+Supported pipeline types: metrics
 
 > :information_source: Requires Podman API version 3.3.1+ and Windows is not supported.
 
@@ -23,8 +20,6 @@ The following settings are optional:
 
 - `collection_interval` (default = `10s`): The interval at which to gather container stats.
 
-- `max_retries` (default = `10`): A number of retry to gather container life cycle events.
-
 Example:
 
 ```yaml
@@ -32,7 +27,6 @@ receivers:
   podman_stats:
     endpoint: unix://run/podman/podman.sock
     collection_interval: 10s
-    max_retries: 10
 ```
 
 The full list of settings exposed for this receiver are documented [here](./config.go)

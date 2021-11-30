@@ -14,18 +14,18 @@
 
 package podmanreceiver
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
+	"testing"
 
-// 	"github.com/stretchr/testify/assert"
-// 	"go.opentelemetry.io/collector/consumer/consumertest"
-// 	"go.uber.org/zap"
-// )
+	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.uber.org/zap"
+)
 
-// func TestNewReceiver(t *testing.T) {
-// 	mr, err := newReceiverWindows(context.Background(), zap.NewNop(), &Config{}, consumertest.NewNop(), nil)
-// 	assert.Nil(t, mr)
-// 	assert.Error(t, err)
-// 	assert.Equal(t, "podman receiver is not supported on windows", err.Error())
-// }
+func TestNewReceiver(t *testing.T) {
+	mr, err := newReceiver(context.Background(), zap.NewNop(), &Config{}, consumertest.NewNop(), nil)
+	assert.Nil(t, mr)
+	assert.Error(t, err)
+	assert.Equal(t, "podman receiver is not supported on windows", err.Error())
+}

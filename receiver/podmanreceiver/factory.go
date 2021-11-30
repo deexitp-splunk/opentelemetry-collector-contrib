@@ -28,15 +28,13 @@ import (
 const (
 	typeStr           = "podman_stats"
 	defaultAPIVersion = "3.3.1"
-	defaultMaxRetries = "10"
 )
 
 func NewFactory() component.ReceiverFactory {
 	return receiverhelper.NewFactory(
 		typeStr,
 		createDefaultReceiverConfig,
-		receiverhelper.WithMetrics(createMetricsReceiver),
-		receiverhelper.WithLogs(createLogsReceiver))
+		receiverhelper.WithMetrics(createMetricsReceiver))
 }
 
 func createDefaultConfig() *Config {
@@ -47,30 +45,11 @@ func createDefaultConfig() *Config {
 		},
 		Endpoint:   "unix:///run/podman/podman.sock",
 		APIVersion: defaultAPIVersion,
-		MaxRetries: defaultMaxRetries,
 	}
 }
 
 func createDefaultReceiverConfig() config.Receiver {
 	return createDefaultConfig()
-}
-
-func createReceiver(
-	ctx context.Context,
-	params component.ReceiverCreateSettings,
-	config config.Receiver,
-) (*receiver, error){
-	podmanConfig := config.(*Config)
-	var err error
-	r := receivers[podmanConfig]
-	if r == nil {
-		r, err = newReceiver(ctx, params, podmanConfig, nil)
-		if err != nil {
-			return nil, err
-		}
-		receivers[podmanConfig] = r
-	}
-	return r, err
 }
 
 func createMetricsReceiver(
@@ -79,29 +58,11 @@ func createMetricsReceiver(
 	config config.Receiver,
 	consumer consumer.Metrics,
 ) (component.MetricsReceiver, error) {
-	r, err := createReceiver(ctx, params, config)
+	podmanConfig := config.(*Config)
+	dsr, err := newReceiver(ctx, params, podmanConfig, consumer, nil)
 	if err != nil {
 		return nil, err
 	}
-	err = r.registerMetricsConsumer(consumer, params)
-	if err != nil {
-		return nil, err
-	}
-	return r, nil
-}
 
-func createLogsReceiver(
-	ctx context.Context,
-	params component.ReceiverCreateSettings,
-	config config.Receiver,
-	consumer consumer.Logs,
-) (component.LogsReceiver, error) {
-	r, err := createReceiver(ctx, params, config)
-	if err != nil {
-		return nil, err
-	}
-	r.registerLogsConsumer(consumer)
-	return r, nil
+	return dsr, nil
 }
-
-var receivers = map[*Config]*receiver{}
