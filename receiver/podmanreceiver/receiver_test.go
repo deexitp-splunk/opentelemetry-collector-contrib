@@ -41,19 +41,20 @@ func TestNewReceiver(t *testing.T) {
 		},
 	}
 	nextConsumer := consumertest.NewNop()
-	mr, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), config, nextConsumer, nil)
+	mr, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), config, nil)
+	mr.registerMetricsConsumer(nextConsumer, componenttest.NewNopReceiverCreateSettings())
 
 	assert.NotNil(t, mr)
 	assert.Nil(t, err)
 }
 
 func TestNewReceiverErrors(t *testing.T) {
-	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), &Config{}, consumertest.NewNop(), nil)
+	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), &Config{}, nil)
 	assert.Nil(t, r)
 	require.Error(t, err)
 	assert.Equal(t, "config.Endpoint must be specified", err.Error())
 
-	r, err = newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), &Config{Endpoint: "someEndpoint"}, consumertest.NewNop(), nil)
+	r, err = newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), &Config{Endpoint: "someEndpoint"}, nil)
 	assert.Nil(t, r)
 	require.Error(t, err)
 	assert.Equal(t, "config.CollectionInterval must be specified", err.Error())
@@ -64,11 +65,11 @@ func TestScraperLoop(t *testing.T) {
 	cfg.CollectionInterval = 100 * time.Millisecond
 
 	client := make(mockClient)
-	consumer := make(mockConsumer)
+	consumerForMetrics := make(mockConsumer)
 
-	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), cfg, consumer, client.factory)
+	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), cfg, client.factory)
+	err = r.registerMetricsConsumer(consumerForMetrics, componenttest.NewNopReceiverCreateSettings())
 	assert.NotNil(t, r)
-	require.NoError(t, err)
 
 	go func() {
 		client <- containerStatsReport{
@@ -78,18 +79,46 @@ func TestScraperLoop(t *testing.T) {
 			Error: "",
 		}
 	}()
-
-	r.Start(context.Background(), componenttest.NewNopHost())
-
-	md := <-consumer
+	err = r.Start(context.Background(), componenttest.NewNopHost())
+	md := <-consumerForMetrics
 	assert.Equal(t, md.ResourceMetrics().Len(), 1)
 
-	r.Shutdown(context.Background())
+	err = r.Shutdown(context.Background())
+	require.NoError(t, err)
+}
+
+func TestLogsLoop(t *testing.T) {
+	cfg := createDefaultConfig()
+
+	client := make(mockClientLogs)
+	consumerForLogs := make(mockConsumerLogs)
+
+	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), cfg, client.factory)
+	r.registerLogsConsumer(consumerForLogs)
+	assert.NotNil(t, r)
+
+	go func() {
+		client <- event{
+			Type:  "Container",
+		}
+	}()
+	err = r.Start(context.Background(), componenttest.NewNopHost())
+
+	md := <-consumerForLogs
+	assert.Equal(t, md.ResourceLogs().Len(), 1)
+
+	err = r.Shutdown(context.Background())
+	require.NoError(t, err)
 }
 
 type mockClient chan containerStatsReport
+type mockClientLogs chan event
 
 func (c mockClient) factory(logger *zap.Logger, cfg *Config) (client, error) {
+	return c, nil
+}
+
+func (c mockClientLogs) factory(logger *zap.Logger, cfg *Config) (client, error) {
 	return c, nil
 }
 
@@ -101,13 +130,40 @@ func (c mockClient) stats() ([]containerStats, error) {
 	return report.Stats, nil
 }
 
+func (c mockClientLogs) stats() ([]containerStats, error) {
+	return nil, nil
+}
+
+func (c mockClient) events(eventChan chan event, errorChan chan error) error {
+	return nil
+}
+
+func (c mockClientLogs) events(eventChan chan event, errorChan chan error) error {
+	report := <-c
+	go func() {
+		eventChan <- report
+		close(eventChan)
+	}()
+	return nil
+}
+
 type mockConsumer chan pdata.Metrics
+type mockConsumerLogs chan pdata.Logs
 
 func (m mockConsumer) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{}
 }
 
+func (m mockConsumerLogs) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{}
+}
+
 func (m mockConsumer) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
 	m <- md
+	return nil
+}
+
+func (m mockConsumerLogs) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
+	m <- ld
 	return nil
 }

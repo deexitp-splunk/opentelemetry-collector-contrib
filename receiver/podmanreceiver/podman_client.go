@@ -57,10 +57,31 @@ type containerStatsReport struct {
 	Stats []containerStats
 }
 
+type actor struct {
+	ID         string
+	Attributes map[string]string
+}
+
+type event struct {
+	Status string `json:"status,omitempty"`
+	ID     string `json:"id,omitempty"`
+	From   string `json:"from,omitempty"`
+
+	Type   string
+	Action string
+	Actor  actor
+
+	Scope string `json:"scope,omitempty"`
+
+	Time     int64 `json:"time,omitempty"`
+	TimeNano int64 `json:"timeNano,omitempty"`
+}
+
 type clientFactory func(logger *zap.Logger, cfg *Config) (client, error)
 
 type client interface {
 	stats() ([]containerStats, error)
+	events(chan event, chan error) error
 }
 
 type podmanClient struct {
@@ -120,6 +141,33 @@ func (c *podmanClient) stats() ([]containerStats, error) {
 		return nil, errors.New(report.Error)
 	}
 	return report.Stats, nil
+}
+func (c *podmanClient) events(eventChan chan event, errorChan chan error) error {
+	params := url.Values{}
+	params.Add("stream", "true")
+	params.Add("since", "0m")
+
+	response, err := c.request(context.Background(), "/events", params)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		dec := json.NewDecoder(response.Body)
+
+		for {
+			var eventToDecode event
+			if err = dec.Decode(&eventToDecode); err != nil {
+				errorChan <- err
+				errorWhileClose := response.Body.Close()
+				errorChan <- errorWhileClose
+				return
+			}
+			eventChan <- eventToDecode
+		}
+		//response.Body.Close()
+	}()
+	return nil
 }
 
 func (c *podmanClient) ping() error {

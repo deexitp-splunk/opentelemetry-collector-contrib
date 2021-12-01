@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//go:build !windows
+// +build !windows
 
 package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 
@@ -22,14 +24,19 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 )
 
-type podmanReceiverStruct struct {
+type receiver struct {
 	config        *Config
 	set           component.ReceiverCreateSettings
-	clientFactory interface{}
-	client        interface{}
+	clientFactory clientFactory
+	client        client
+
+	metricsComponent component.MetricsReceiver
+	obsrecv          *obsreport.Receiver
+	logsConsumer     consumer.Logs
+	metricsConsumer  consumer.Metrics
 }
 
-func newReceiver(
+func newReceiverWindows(
 	_ context.Context,
 	settings component.ReceiverCreateSettings,
 	config *Config,

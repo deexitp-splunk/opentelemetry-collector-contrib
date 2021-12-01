@@ -1,0 +1,92 @@
+# Configuration file that uses the Splunk exporters (SAPM, SignalFx) to push
+# data to Splunk products.
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  http_forwarder:
+    ingress:
+      endpoint: 0.0.0.0:6060
+    egress:
+      endpoint: "https://api.us0.signalfx.com"
+  zpages:
+    endpoint: 0.0.0.0:55679
+  memory_ballast:
+    # In general, the ballast should be set to 1/3 of the collector's memory, the limit
+    # should be 90% of the collector's memory.
+    # The simplest way to specify the ballast size is set the value of SPLUNK_BALLAST_SIZE_MIB env variable.
+    size_mib: ${SPLUNK_BALLAST_SIZE_MIB}
+
+receivers:
+  podman_stats:
+    endpoint: ssh://core@localhost:61032/run/user/1000/podman/podman.sock
+    ssh_key: /Users/deexitp/.ssh/podman-machine-default
+    collection_interval: 1s
+#    max_retries: 3
+  signalfx:
+#    endpoint: localhost:9943
+    access_token_passthrough: true
+  splunk_hec:
+#  podman_stats/all:
+#    endpoint: ssh://core@localhost:61032/run/user/1000/podman/podman.sock
+#    ssh_key: /Users/deexitp/.ssh/podman-machine-default
+#    collection_interval: 1s
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+  # Enabling the memory_limiter is strongly recommended for every pipeline.
+  # Configuration is based on the amount of memory allocated to the collector.
+  # For more information about memory limiter, see
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiter/README.md
+  memory_limiter:
+    check_interval: 2s
+    limit_mib: ${SPLUNK_MEMORY_LIMIT_MIB}
+
+  # Optional: The following processor can be used to add a default "deployment.environment" attribute to the traces
+  # when it's not populated by instrumentation libraries.
+  # If enabled, make sure to enable this processor in the pipeline below.
+  #resource/add_environment:
+    #attributes:
+      #- action: insert
+        #value: staging/production/...
+        #key: deployment.environment
+
+  # detect if the collector is running on a cloud system.
+  # overrides resource attributes set by receivers
+  resourcedetection/internal:
+    detectors: [system, gce, ecs, ec2, azure]
+    override: true
+  resourcedetection:
+    detectors: [ system, gce, ecs, ec2, azure ]
+
+exporters:
+  # Traces
+    ## Uncomment below if your agents are sending via signalfx exporter
+    ## to avoid double translations and exclusions.
+    #translation_rules: []
+    #exclude_metrics: []
+  # Debug
+  signalfx:
+    access_token: Gih4r6ewapRyz7bmDrdUPQ
+    realm: us0
+
+  logging:
+    loglevel: debug
+  file:
+    path: ./logs.json
+
+service:
+  extensions: [health_check, http_forwarder, zpages, memory_ballast]
+  pipelines:
+#    metrics:
+#      receivers: [podman_stats]
+#      processors: [batch]
+#      exporters: [logging]
+    logs:
+      receivers: [podman_stats]
+      processors: [batch]
+      exporters: [logging]
