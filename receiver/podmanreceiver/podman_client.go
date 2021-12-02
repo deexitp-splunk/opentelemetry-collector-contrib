@@ -154,6 +154,7 @@ func (c *podmanClient) events(logger *zap.Logger, eventChan chan event, errorCha
 
 	go func() {
 		dec := json.NewDecoder(response.Body)
+
 		for {
 			var eventToDecode event
 			if err = dec.Decode(&eventToDecode); err != nil {

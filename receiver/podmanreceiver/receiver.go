@@ -25,7 +25,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/model/pdata"
-	"go.opentelemetry.io/collector/obsreport"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 	"go.uber.org/zap"
 )
@@ -37,7 +36,6 @@ type receiver struct {
 	client        client
 
 	metricsComponent component.MetricsReceiver
-	obsrecv          *obsreport.Receiver
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
 }
@@ -84,15 +82,21 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 	if r.logsConsumer != nil {
 		eventBackoff := backoff.NewExponentialBackOff()
 		eventBackoff.InitialInterval = 2 * time.Second
-		eventBackoff.MaxInterval = 10 * time.Minute
+		eventBackoff.MaxInterval = 3 * time.Minute
 		eventBackoff.Multiplier = 2
 		eventBackoff.MaxElapsedTime = 0
+		er := make(chan error)
 		go func() {
-			backoff.Retry(func() error {
+			errorWhileRetry := backoff.Retry(func() error {
 				err := r.handleEvents(ctx, eventBackoff)
 				return err
 			}, eventBackoff)
+			if errorWhileRetry != nil {
+				er <- errorWhileRetry
+			}
+			close(er)
 		}()
+		return <-er
 	}
 	if r.metricsConsumer != nil {
 		er := make(chan error)
@@ -167,8 +171,6 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 		select {
 		case err := <-errorChan:
 			r.set.Logger.Error("Error while fetching/decoding events", zap.Error(err))
-			close(events)
-			close(errorChan)
 			return err
 		case eventToTranslate := <-events:
 			ld, er := traslateEventsToLogs(r.set.Logger, eventToTranslate)

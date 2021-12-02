@@ -68,7 +68,9 @@ func TestScraperLoop(t *testing.T) {
 	consumerForMetrics := make(mockConsumer)
 
 	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), cfg, client.factory)
+	require.NoError(t, err)
 	err = r.registerMetricsConsumer(consumerForMetrics, componenttest.NewNopReceiverCreateSettings())
+	require.NoError(t, err)
 	assert.NotNil(t, r)
 
 	go func() {
@@ -80,6 +82,7 @@ func TestScraperLoop(t *testing.T) {
 		}
 	}()
 	err = r.Start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
 	md := <-consumerForMetrics
 	assert.Equal(t, md.ResourceMetrics().Len(), 1)
 
@@ -94,15 +97,17 @@ func TestLogsLoop(t *testing.T) {
 	consumerForLogs := make(mockConsumerLogs)
 
 	r, err := newReceiver(context.Background(), componenttest.NewNopReceiverCreateSettings(), cfg, client.factory)
+	require.NoError(t, err)
 	r.registerLogsConsumer(consumerForLogs)
 	assert.NotNil(t, r)
 
 	go func() {
 		client <- event{
-			Type:  "Container",
+			Type: "Container",
 		}
 	}()
 	err = r.Start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
 
 	md := <-consumerForLogs
 	assert.Equal(t, md.ResourceLogs().Len(), 1)
@@ -134,11 +139,11 @@ func (c mockClientLogs) stats() ([]containerStats, error) {
 	return nil, nil
 }
 
-func (c mockClient) events(eventChan chan event, errorChan chan error) error {
+func (c mockClient) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
 	return nil
 }
 
-func (c mockClientLogs) events(eventChan chan event, errorChan chan error) error {
+func (c mockClientLogs) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
 	report := <-c
 	go func() {
 		eventChan <- report

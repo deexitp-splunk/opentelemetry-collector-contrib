@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//go:build !windows
-// +build !windows
 
 package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 
@@ -31,7 +29,6 @@ type receiver struct {
 	client        client
 
 	metricsComponent component.MetricsReceiver
-	obsrecv          *obsreport.Receiver
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
 }
@@ -40,7 +37,6 @@ func newReceiverWindows(
 	_ context.Context,
 	settings component.ReceiverCreateSettings,
 	config *Config,
-	nextConsumer consumer.Metrics,
 	clientFactory interface{},
 ) (component.MetricsReceiver, error) {
 	return nil, fmt.Errorf("podman receiver is not supported on windows")
