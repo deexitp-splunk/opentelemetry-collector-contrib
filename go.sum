@@ -2144,8 +2144,6 @@ go.opencensus.io v0.22.5/go.mod h1:5pWMHQbX5EPX2/62yrJeAkowc+lfs/XD7Uxpq3pI6kk=
 go.opencensus.io v0.23.0 h1:gqCw0LfLxScz8irSi8exQc7fyQ0fKQU/qnC/X8+V/1M=
 go.opencensus.io v0.23.0/go.mod h1:XItmlyltB5F7CS4xOC1DcqMoFqwtC6OG2xF7mCv7P7E=
 go.opentelemetry.io/collector v0.35.0/go.mod h1:mMW4VJHhy8CwoTenV75axteKd0aZhWHDZjcZ59V53kc=
-go.opentelemetry.io/collector v0.39.0/go.mod h1:LSOk+VL3LFHE6Q8wuWeljbRZYpnx36wJH807vDElcos=
-go.opentelemetry.io/collector v0.39.1-0.20211122170858-f69d23494726/go.mod h1:Yl5VMlvd0FKdKyeX/A240dUiyRIWgwTc5u4nNxsVFnw=
 go.opentelemetry.io/collector v0.40.0 h1:Re4DF9x5NfGwHDmTxpaAcfE28wL14MFzLTfEF+cxvLM=
 go.opentelemetry.io/collector v0.40.0/go.mod h1:suhkm5oZbjQU/8FM2HSSI+Zrh/+VIcNjE4ZPa+WQ8ls=
 go.opentelemetry.io/collector/model v0.30.2-0.20210719230137-809cae954ed3/go.mod h1:PcHNnM+RUl0uD8VkSn93PO78N7kQYhfqpI/eki57pl4=
@@ -2154,7 +2152,6 @@ go.opentelemetry.io/collector/model v0.35.0/go.mod h1:+7YCSjJG+MqiIFjauzt7oM2qkq
 go.opentelemetry.io/collector/model v0.36.1-0.20211004155959-190f8fbb2b9a/go.mod h1:ESh1oWDNdS4fTg9sTFoYuiuvs8QuaX8yNGTPix3JZc8=
 go.opentelemetry.io/collector/model v0.38.0/go.mod h1:gS8A27wi+8gM3hrXL+dEjTbrbLxktjHjAwwqI31ELgQ=
 go.opentelemetry.io/collector/model v0.39.0/go.mod h1:gS8A27wi+8gM3hrXL+dEjTbrbLxktjHjAwwqI31ELgQ=
-go.opentelemetry.io/collector/model v0.39.1-0.20211122170858-f69d23494726/go.mod h1:dXqjAeml+cB+YzJ3kUnd3v5/JvGAKl3MqHXfgSWRIo8=
 go.opentelemetry.io/collector/model v0.40.0 h1:UgdWfBnJBQL4atFv6LhlYq67Ts/vFDbwGknvsIsm/g8=
 go.opentelemetry.io/collector/model v0.40.0/go.mod h1:dXqjAeml+cB+YzJ3kUnd3v5/JvGAKl3MqHXfgSWRIo8=
 go.opentelemetry.io/contrib v0.20.0/go.mod h1:G/EtFaa6qaN7+LxqfIAT3GiZa7Wv5DTBUzl5H4LY0Kc=

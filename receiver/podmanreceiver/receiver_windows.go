@@ -25,19 +25,28 @@ import (
 type receiver struct {
 	config        *Config
 	set           component.ReceiverCreateSettings
-	clientFactory clientFactory
-	client        client
+	clientFactory interface{}
+	client        interface{}
 
 	metricsComponent component.MetricsReceiver
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
 }
 
-func newReceiverWindows(
+func newReceiver(
 	_ context.Context,
 	settings component.ReceiverCreateSettings,
 	config *Config,
 	clientFactory interface{},
 ) (component.MetricsReceiver, error) {
 	return nil, fmt.Errorf("podman receiver is not supported on windows")
+}
+
+func (r *receiver) registerMetricsConsumer(mc consumer.Metrics, set component.ReceiverCreateSettings) error {
+	r.metricsConsumer = mc
+	return nil
+}
+
+func (r *receiver) registerLogsConsumer(mc consumer.Metrics, set component.ReceiverCreateSettings) error {
+	return nil
 }
