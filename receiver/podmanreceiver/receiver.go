@@ -158,7 +158,7 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 	}
 	events := make(chan event)
 	errorChan := make(chan error)
-	err = r.client.events(events, errorChan)
+	err = r.client.events(r.set.Logger, events, errorChan)
 	if err != nil {
 		r.set.Logger.Error("error fetching stats", zap.Error(err))
 		return err
@@ -167,6 +167,8 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 		select {
 		case err := <-errorChan:
 			r.set.Logger.Error("Error while fetching/decoding events", zap.Error(err))
+			close(events)
+			close(errorChan)
 			return err
 		case eventToTranslate := <-events:
 			ld, er := traslateEventsToLogs(r.set.Logger, eventToTranslate)
@@ -180,10 +182,6 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 				return transferErr
 			}
 			eventBackoff.Reset()
-		case <-ctx.Done():
-			r.set.Logger.Info("Stopping the channel since because of interruption signal")
-			close(events)
-			close(errorChan)
 		}
 	}
 }

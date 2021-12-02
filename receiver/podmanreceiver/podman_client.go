@@ -81,7 +81,7 @@ type clientFactory func(logger *zap.Logger, cfg *Config) (client, error)
 
 type client interface {
 	stats() ([]containerStats, error)
-	events(chan event, chan error) error
+	events(*zap.Logger, chan event, chan error) error
 }
 
 type podmanClient struct {
@@ -142,7 +142,7 @@ func (c *podmanClient) stats() ([]containerStats, error) {
 	}
 	return report.Stats, nil
 }
-func (c *podmanClient) events(eventChan chan event, errorChan chan error) error {
+func (c *podmanClient) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
 	params := url.Values{}
 	params.Add("stream", "true")
 	params.Add("since", "0m")
@@ -154,18 +154,16 @@ func (c *podmanClient) events(eventChan chan event, errorChan chan error) error 
 
 	go func() {
 		dec := json.NewDecoder(response.Body)
-
 		for {
 			var eventToDecode event
 			if err = dec.Decode(&eventToDecode); err != nil {
 				errorChan <- err
-				errorWhileClose := response.Body.Close()
-				errorChan <- errorWhileClose
+				errWhileClose := response.Body.Close()
+				logger.Error("Error while closing the body", zap.Error(errWhileClose))
 				return
 			}
 			eventChan <- eventToDecode
 		}
-		//response.Body.Close()
 	}()
 	return nil
 }
