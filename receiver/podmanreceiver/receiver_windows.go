@@ -28,7 +28,7 @@ type receiver struct {
 	clientFactory interface{}
 	client        interface{}
 
-	metricsComponent component.MetricsReceiver
+	metricsComponent interface{}
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
 }
@@ -38,7 +38,7 @@ func newReceiver(
 	settings component.ReceiverCreateSettings,
 	config *Config,
 	clientFactory interface{},
-) (component.MetricsReceiver, error) {
+) (*receiver, error) {
 	return nil, fmt.Errorf("podman receiver is not supported on windows")
 }
 
@@ -47,6 +47,14 @@ func (r *receiver) registerMetricsConsumer(mc consumer.Metrics, set component.Re
 	return nil
 }
 
-func (r *receiver) registerLogsConsumer(mc consumer.Metrics, set component.ReceiverCreateSettings) error {
+func (r *receiver) registerLogsConsumer(mc consumer.Logs) error {
+	return nil
+}
+
+func (r *receiver) Shutdown(ctx context.Context) error {
+	return nil
+}
+
+func (r *receiver) Start(ctx context.Context, host component.Host) error {
 	return nil
 }

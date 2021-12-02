@@ -19,8 +19,8 @@ extensions:
 
 receivers:
   podman_stats:
-    endpoint: ssh://core@localhost:61032/run/user/1000/podman/podman.sock
-    ssh_key: /Users/deexitp/.ssh/podman-machine-default
+    endpoint: 0.0.0.0:61032/run/user/1000/podman/podman.sock
+#    ssh_key: /Users/deexitp/.ssh/podman-machine-default
     collection_interval: 1s
 #    max_retries: 3
   signalfx:
