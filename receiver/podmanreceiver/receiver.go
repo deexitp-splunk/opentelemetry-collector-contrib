@@ -79,41 +79,35 @@ func (r *receiver) registerLogsConsumer(lc consumer.Logs) {
 }
 
 func (r *receiver) Start(ctx context.Context, host component.Host) error {
+	if r.logsConsumer == nil {
+		r.set.Logger.Warn("Logs Receiver is not set")
+	}
+	if r.metricsConsumer == nil {
+		r.set.Logger.Warn("Metrics Receiver is not set")
+	}
+	if r.metricsConsumer != nil {
+		go func() {
+			err := r.metricsComponent.Start(ctx, host)
+			if err != nil {
+				r.set.Logger.Warn("", zap.Error(err))
+			}
+		}()
+	}
 	if r.logsConsumer != nil {
 		eventBackoff := backoff.NewExponentialBackOff()
 		eventBackoff.InitialInterval = 2 * time.Second
 		eventBackoff.MaxInterval = 3 * time.Minute
 		eventBackoff.Multiplier = 2
 		eventBackoff.MaxElapsedTime = 0
-		er := make(chan error)
 		go func() {
 			errorWhileRetry := backoff.Retry(func() error {
 				err := r.handleEvents(ctx, eventBackoff)
 				return err
 			}, eventBackoff)
 			if errorWhileRetry != nil {
-				er <- errorWhileRetry
+				r.set.Logger.Warn("", zap.Error(errorWhileRetry))
 			}
-			close(er)
 		}()
-		return <-er
-	}
-	if r.metricsConsumer != nil {
-		er := make(chan error)
-		go func() {
-			err := r.metricsComponent.Start(ctx, host)
-			if err != nil {
-				er <- err
-			}
-			close(er)
-		}()
-		return <-er
-	}
-	if r.logsConsumer == nil {
-		r.set.Logger.Warn("Logs Receiver is not set")
-	}
-	if r.metricsConsumer == nil {
-		r.set.Logger.Warn("Metrics Receiver is not set")
 	}
 	return nil
 }
