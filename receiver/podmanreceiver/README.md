@@ -23,6 +23,8 @@ The following settings are optional:
 
 - `collection_interval` (default = `10s`): The interval at which to gather container stats.
 
+- `max_retries` (default = `10`): A number of retry to gather container life cycle events.
+
 Example:
 
 ```yaml

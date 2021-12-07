@@ -28,6 +28,7 @@ import (
 const (
 	typeStr           = "podman_stats"
 	defaultAPIVersion = "3.3.1"
+	defaultMaxRetries = "10"
 )
 
 func NewFactory() component.ReceiverFactory {
@@ -46,6 +47,7 @@ func createDefaultConfig() *Config {
 		},
 		Endpoint:   "unix:///run/podman/podman.sock",
 		APIVersion: defaultAPIVersion,
+		MaxRetries: defaultMaxRetries,
 	}
 }
 

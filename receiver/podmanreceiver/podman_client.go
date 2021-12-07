@@ -22,9 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -56,7 +60,6 @@ type containerStatsReport struct {
 	Error string
 	Stats []containerStats
 }
-
 type actor struct {
 	ID         string
 	Attributes map[string]string
@@ -142,6 +145,7 @@ func (c *podmanClient) stats() ([]containerStats, error) {
 	}
 	return report.Stats, nil
 }
+
 func (c *podmanClient) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
 	params := url.Values{}
 	params.Add("stream", "true")
