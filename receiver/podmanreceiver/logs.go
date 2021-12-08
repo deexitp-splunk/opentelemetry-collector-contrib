@@ -35,10 +35,7 @@ func traslateEventsToLogs(logger *zap.Logger, event event) (pdata.Logs, error) {
 	logRecord.SetTimestamp(pdata.Timestamp(event.TimeNano))
 	logRecord.Attributes().InsertString("contianer.id", event.ID)
 
-	body, err := convertInterfaceToAttributeValue(logger, "podman "+event.Type+"("+event.Actor.Attributes["name"]+") "+event.Action)
-	if err != nil {
-		return pdata.NewLogs(), err
-	}
+	body := pdata.NewAttributeValueString("podman "+event.Type+"("+event.Actor.Attributes["name"]+") "+event.Action)
 	body.CopyTo(logRecord.Body())
 
 	keys := make([]string, 0, len(event.Actor.Attributes))

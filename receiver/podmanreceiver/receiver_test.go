@@ -18,8 +18,12 @@
 package podmanreceiver
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
@@ -101,11 +105,6 @@ func TestLogsLoop(t *testing.T) {
 	r.registerLogsConsumer(consumerForLogs)
 	assert.NotNil(t, r)
 
-	go func() {
-		client <- event{
-			Type: "Container",
-		}
-	}()
 	err = r.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
@@ -117,7 +116,7 @@ func TestLogsLoop(t *testing.T) {
 }
 
 type mockClient chan containerStatsReport
-type mockClientLogs chan event
+type mockClientLogs chan http.Response
 
 func (c mockClient) factory(logger *zap.Logger, cfg *Config) (client, error) {
 	return c, nil
@@ -139,17 +138,21 @@ func (c mockClientLogs) stats() ([]containerStats, error) {
 	return nil, nil
 }
 
-func (c mockClient) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
-	return nil
+func (c mockClient) getEventsResponse(*zap.Logger) (*http.Response, error) {
+	return nil, nil
 }
 
-func (c mockClientLogs) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
-	report := <-c
-	go func() {
-		eventChan <- report
-		close(eventChan)
-	}()
-	return nil
+func (c mockClientLogs) getEventsResponse(*zap.Logger) (*http.Response, error) {
+	mockRes := event{
+		Type: "container",
+	}
+	b, _ := json.Marshal(mockRes)
+	tempReport := &http.Response{
+		Status:     "Ok",
+		StatusCode: 200,
+		Body:       ioutil.NopCloser(bytes.NewBuffer(b)),
+	}
+	return tempReport, nil
 }
 
 type mockConsumer chan pdata.Metrics

@@ -22,13 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
-	"math"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -84,7 +80,7 @@ type clientFactory func(logger *zap.Logger, cfg *Config) (client, error)
 
 type client interface {
 	stats() ([]containerStats, error)
-	events(*zap.Logger, chan event, chan error) error
+	getEventsResponse(*zap.Logger) (*http.Response, error)
 }
 
 type podmanClient struct {
@@ -146,31 +142,26 @@ func (c *podmanClient) stats() ([]containerStats, error) {
 	return report.Stats, nil
 }
 
-func (c *podmanClient) events(logger *zap.Logger, eventChan chan event, errorChan chan error) error {
+func (c *podmanClient) getEventsResponse(logger *zap.Logger) (*http.Response, error) {
 	params := url.Values{}
 	params.Add("stream", "true")
 	params.Add("since", "0m")
 
 	response, err := c.request(context.Background(), "/events", params)
 	if err != nil {
-		return err
+		logger.Error("Error while fetching events", zap.Error(err))
+		return nil, err
 	}
+	return response, nil
+}
 
-	go func() {
-		dec := json.NewDecoder(response.Body)
-
-		for {
-			var eventToDecode event
-			if err = dec.Decode(&eventToDecode); err != nil {
-				errorChan <- err
-				errWhileClose := response.Body.Close()
-				logger.Error("Error while closing the body", zap.Error(errWhileClose))
-				return
-			}
-			eventChan <- eventToDecode
-		}
-	}()
-	return nil
+func decodeEvents(logger *zap.Logger, dec *json.Decoder) (event, error) {
+	var eventToDecode event
+	if err := dec.Decode(&eventToDecode); err != nil {
+		logger.Error("Error while closing the body", zap.Error(err))
+		return event{}, err
+	}
+	return eventToDecode, nil
 }
 
 func (c *podmanClient) ping() error {
