@@ -20,6 +20,7 @@ package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collec
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -40,7 +41,8 @@ type receiver struct {
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
 
-	logsshutdown bool
+	isLogsShutdown bool
+	shutDownSync   sync.Mutex
 }
 
 func newReceiver(
@@ -91,7 +93,7 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 		eventBackoff.MaxInterval = 3 * time.Minute
 		eventBackoff.Multiplier = 2
 		eventBackoff.MaxElapsedTime = 0
-		r.logsshutdown = false
+		r.isLogsShutdown = false
 		go func() {
 			// Retry if any errors occur while getting the events.
 			errorWhileRetry := backoff.Retry(func() error {
@@ -125,7 +127,9 @@ func (r *receiver) Shutdown(ctx context.Context) error {
 		}
 	}
 	if r.logsConsumer != nil {
-		r.logsshutdown = true
+		r.shutDownSync.Lock()
+		r.isLogsShutdown = true
+		r.shutDownSync.Unlock()
 	}
 	return nil
 
@@ -190,8 +194,10 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 			return transferErr
 		}
 		eventBackoff.Reset()
-		if r.logsshutdown {
+		r.shutDownSync.Lock()
+		if r.isLogsShutdown {
 			return nil
 		}
+		r.shutDownSync.Unlock()
 	}
 }
