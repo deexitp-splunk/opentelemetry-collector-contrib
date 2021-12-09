@@ -19,6 +19,7 @@ package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collec
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	"go.opentelemetry.io/collector/model/pdata"
@@ -35,7 +36,8 @@ func traslateEventsToLogs(logger *zap.Logger, event event) (pdata.Logs, error) {
 	logRecord.SetTimestamp(pdata.Timestamp(event.TimeNano))
 	logRecord.Attributes().InsertString("contianer.id", event.ID)
 
-	body := pdata.NewAttributeValueString("podman " + event.Type + "(" + event.Actor.Attributes["name"] + ") " + event.Action)
+	bodyString := fmt.Sprintf("podman %s ( %s ) %s", event.Type, event.Actor.Attributes["name"], event.Action)
+	body := pdata.NewAttributeValueString(bodyString)
 	body.CopyTo(logRecord.Body())
 
 	keys := make([]string, 0, len(event.Actor.Attributes))

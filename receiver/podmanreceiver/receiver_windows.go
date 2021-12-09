@@ -17,6 +17,7 @@ package podmanreceiver // import "github.com/open-telemetry/opentelemetry-collec
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -25,12 +26,15 @@ import (
 type receiver struct {
 	config        *Config
 	set           component.ReceiverCreateSettings
-	clientFactory interface{}
-	client        interface{}
+	clientFactory clientFactory
+	client        client
 
-	metricsComponent interface{}
+	metricsComponent component.MetricsReceiver
 	logsConsumer     consumer.Logs
 	metricsConsumer  consumer.Metrics
+
+	isLogsShutdown bool
+	shutDownSync   sync.Mutex
 }
 
 func newReceiver(

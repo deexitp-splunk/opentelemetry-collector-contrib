@@ -138,11 +138,11 @@ func (c mockClientLogs) stats() ([]containerStats, error) {
 	return nil, nil
 }
 
-func (c mockClient) getEventsResponse(*zap.Logger) (*http.Response, error) {
+func (c mockClient) getEventsResponse() (*http.Response, error) {
 	return nil, nil
 }
 
-func (c mockClientLogs) getEventsResponse(*zap.Logger) (*http.Response, error) {
+func (c mockClientLogs) getEventsResponse() (*http.Response, error) {
 	mockRes := event{
 		Type: "container",
 	}
