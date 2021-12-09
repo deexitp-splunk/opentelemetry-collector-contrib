@@ -26,8 +26,8 @@ import (
 type receiver struct {
 	config        *Config
 	set           component.ReceiverCreateSettings
-	clientFactory clientFactory
-	client        client
+	clientFactory interface{}
+	client        interface{}
 
 	metricsComponent component.MetricsReceiver
 	logsConsumer     consumer.Logs
