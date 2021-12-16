@@ -93,7 +93,11 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 		eventBackoff.MaxInterval = 10 * time.Minute
 		eventBackoff.Multiplier = 2
 		eventBackoff.MaxElapsedTime = 0
+
+		r.shutDownSync.Lock()
+		defer r.shutDownSync.Unlock()
 		r.isLogsShutdown = false
+
 		go func() {
 			// Retry if any errors occur while getting the events.
 			errorWhileRetry := backoff.Retry(func() error {
@@ -101,7 +105,7 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 				return err
 			}, eventBackoff)
 			if errorWhileRetry != nil {
-				r.set.Logger.Error("Retry failed", zap.Error(errorWhileRetry))
+				r.set.Logger.Error("retry failed", zap.Error(errorWhileRetry))
 			}
 		}()
 	}
@@ -112,7 +116,7 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 		go func() {
 			err := r.metricsComponent.Start(ctx, host)
 			if err != nil {
-				r.set.Logger.Error("Error starting metrics receiver", zap.Error(err))
+				r.set.Logger.Error("error starting metrics receiver", zap.Error(err))
 			}
 		}()
 	}
@@ -168,42 +172,42 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 	r.client = c
 
 	// Fetch the response from the endpoint
-	response, fetchErr := r.client.getEventsResponse()
-	if fetchErr != nil {
-		r.set.Logger.Error("Error while fetching events", zap.Error(fetchErr))
-		return fetchErr
+	response, err := r.client.getEventsResponse()
+	if err != nil {
+		r.set.Logger.Error("error while fetching events", zap.Error(err))
+		return err
 	}
 
 	dec := json.NewDecoder(response.Body)
 	for {
 		// Translate the response to the events format.
-		decodedEvent, decodeErr := decodeEvents(dec)
-		if decodeErr != nil {
-			r.set.Logger.Error("Error decoding the event", zap.Error(decodeErr))
-			if connCloseErr := response.Body.Close(); connCloseErr != nil {
-				r.set.Logger.Error("Error while closing the connection", zap.Error(connCloseErr))
-				return connCloseErr
+		decodedEvent, err := decodeEvents(dec)
+		if err != nil {
+			r.set.Logger.Error("error decoding the event", zap.Error(err))
+			if err = response.Body.Close(); err != nil {
+				r.set.Logger.Error("error while closing the connection", zap.Error(err))
+				return err
 			}
-			return decodeErr
+			return err
 		}
 
 		// Translate the events into the pdata.logs format
-		ld, translationErr := traslateEventsToLogs(r.set.Logger, decodedEvent)
-		if translationErr != nil {
-			r.set.Logger.Error("Error translating event to log", zap.Error(translationErr))
-			return translationErr
+		ld, err := traslateEventsToLogs(r.set.Logger, decodedEvent)
+		if err != nil {
+			r.set.Logger.Error("error translating event to log", zap.Error(err))
+			return err
 		}
 
-		transferErr := r.logsConsumer.ConsumeLogs(ctx, ld)
-		if transferErr != nil {
-			r.set.Logger.Error("Error transferring it to the next component", zap.Error(transferErr))
-			return transferErr
+		err = r.logsConsumer.ConsumeLogs(ctx, ld)
+		if err != nil {
+			r.set.Logger.Error("error transferring it to the next component", zap.Error(err))
+			return err
 		}
 		eventBackoff.Reset()
 		r.shutDownSync.Lock()
+		defer r.shutDownSync.Unlock()
 		if r.isLogsShutdown {
 			return nil
 		}
-		r.shutDownSync.Unlock()
 	}
 }
