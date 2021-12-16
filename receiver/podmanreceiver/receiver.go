@@ -95,8 +95,8 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 		eventBackoff.MaxElapsedTime = 0
 
 		r.shutDownSync.Lock()
-		defer r.shutDownSync.Unlock()
 		r.isLogsShutdown = false
+    r.shutDownSync.Unlock()
 
 		go func() {
 			// Retry if any errors occur while getting the events.
