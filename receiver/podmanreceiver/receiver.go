@@ -96,7 +96,7 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 
 		r.shutDownSync.Lock()
 		r.isLogsShutdown = false
-    r.shutDownSync.Unlock()
+		r.shutDownSync.Unlock()
 
 		go func() {
 			// Retry if any errors occur while getting the events.
@@ -205,9 +205,10 @@ func (r *receiver) handleEvents(ctx context.Context, eventBackoff *backoff.Expon
 		}
 		eventBackoff.Reset()
 		r.shutDownSync.Lock()
-		defer r.shutDownSync.Unlock()
 		if r.isLogsShutdown {
+			r.shutDownSync.Unlock()
 			return nil
 		}
+		r.shutDownSync.Unlock()
 	}
 }
