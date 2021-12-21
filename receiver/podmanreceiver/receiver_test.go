@@ -140,11 +140,11 @@ func (c mockClientLogs) stats() ([]containerStats, error) {
 	return nil, nil
 }
 
-func (c mockClient) getEventsResponse() (*http.Response, error) {
+func (c mockClient) getEventsResponse(ctx context.Context) (*http.Response, error) {
 	return nil, nil
 }
 
-func (c mockClientLogs) getEventsResponse() (*http.Response, error) {
+func (c mockClientLogs) getEventsResponse(ctx context.Context) (*http.Response, error) {
 	tempReport := &http.Response{
 		Status:     "Ok",
 		StatusCode: 200,
@@ -182,12 +182,13 @@ func (t testEventReader) Read(b []byte) (int, error) {
 	mockRes := event{
 		Type: "container",
 	}
-	bb, _ := json.Marshal(mockRes)
+	encodedResponse, _ := json.Marshal(mockRes)
 	if count == 2 {
 		return 0, io.EOF
 	}
+
 	count++
-	n := copy(b, bb)
+	n := copy(b, encodedResponse)
 	return n, nil
 }
 
