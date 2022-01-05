@@ -182,6 +182,7 @@ func (t testEventReader) Read(b []byte) (int, error) {
 	mockRes := event{
 		Type: "container",
 	}
+
 	encodedResponse, _ := json.Marshal(mockRes)
 	if count == 2 {
 		return 0, io.EOF

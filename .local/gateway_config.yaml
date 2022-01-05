@@ -19,7 +19,7 @@ extensions:
 
 receivers:
   podman_stats:
-    endpoint: 0.0.0.0:61032/run/user/1000/podman/podman.sock
+    endpoint: tcp://10.0.11.148:8090
 #    ssh_key: /Users/deexitp/.ssh/podman-machine-default
     collection_interval: 1s
 #    max_retries: 3
@@ -82,10 +82,10 @@ exporters:
 service:
   extensions: [health_check, http_forwarder, zpages, memory_ballast]
   pipelines:
-#    metrics:
-#      receivers: [podman_stats]
-#      processors: [batch]
-#      exporters: [logging]
+    metrics:
+      receivers: [podman_stats]
+      processors: [batch]
+      exporters: [logging]
     logs:
       receivers: [podman_stats]
       processors: [batch]
