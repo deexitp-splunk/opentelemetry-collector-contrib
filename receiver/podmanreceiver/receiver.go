@@ -111,7 +111,7 @@ func (r *receiver) Start(ctx context.Context, host component.Host) error {
 			// Retry if any errors occur while getting the events.
 			defer r.wg.Done()
 			errorWhileRetry := backoff.Retry(func() error {
-				err := r.handleEvents(ctx, eventBackoff)
+				err = r.handleEvents(ctx, eventBackoff)
 				return fmt.Errorf("error fetching/processing events: %w", err)
 			}, backoffContext)
 			if errorWhileRetry != nil {
