@@ -46,9 +46,9 @@ func translateEventsToLogs(logger *zap.Logger, event event) (pdata.Logs, error) 
 		keys = append(keys, k)
 	}
 
-	// need to sort the keys for the test usability.
-	// In test case, the keys can be in any order. So, test can be flaky if not decide the order of the keys.
-	sort.Strings(keys)
+	// // need to sort the keys for the test usability.
+	// // In test case, the keys can be in any order. So, test can be flaky if not decide the order of the keys.
+	// sort.Strings(keys)
 	for _, key := range keys {
 		val := event.Actor.Attributes[key]
 		attrValue, err := convertInterfaceToAttributeValue(logger, val)

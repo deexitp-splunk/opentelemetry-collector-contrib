@@ -29,7 +29,7 @@ func Test_EventsToLogs(t *testing.T) {
 	tests := []struct {
 		name    string
 		event   event
-		output  pdata.Logs
+		output  pdata.ResourceLogsSlice
 		wantErr error
 	}{
 		{
@@ -47,11 +47,10 @@ func Test_EventsToLogs(t *testing.T) {
 					},
 				},
 			},
-			output: func() pdata.Logs {
-				ld := pdata.NewLogs()
-				rl := ld.ResourceLogs().AppendEmpty()
-				ill := rl.InstrumentationLibraryLogs().AppendEmpty()
-
+			output: func() pdata.ResourceLogsSlice {
+				lrs := pdata.NewResourceLogsSlice()
+				lr := lrs.AppendEmpty()
+				ill := lr.InstrumentationLibraryLogs().AppendEmpty()
 				logRecord := ill.Logs().AppendEmpty()
 				logRecord.SetName("start")
 				logRecord.SetTimestamp(pdata.Timestamp(nanoseconds))
@@ -60,7 +59,7 @@ func Test_EventsToLogs(t *testing.T) {
 				body.CopyTo(logRecord.Body())
 				logRecord.Attributes().Insert("container.image.name", pdata.NewAttributeValueString("test_image"))
 				logRecord.Attributes().Insert("container.name", pdata.NewAttributeValueString("test"))
-				return ld
+				return lrs
 			}(),
 			wantErr: nil,
 		},
@@ -68,9 +67,10 @@ func Test_EventsToLogs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := translateEventsToLogs(zap.NewNop(), tt.event)
+			result.ResourceLogs().At(0).InstrumentationLibraryLogs().At(0).Logs().At(0).Attributes().Sort()
 			assert.Equal(t, tt.wantErr, err)
-			assert.Equal(t, tt.output.ResourceLogs().Len(), result.ResourceLogs().Len())
-			assert.Equal(t, tt.output.ResourceLogs().At(0), result.ResourceLogs().At(0))
+			assert.Equal(t, tt.output.Len(), result.ResourceLogs().Len())
+			assert.Equal(t, tt.output.At(0), result.ResourceLogs().At(0))
 		})
 	}
 }
