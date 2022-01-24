@@ -87,10 +87,9 @@ func (r *receiver) registerLogsConsumer(lc consumer.Logs) {
 func (r *receiver) Start(ctx context.Context, host component.Host) error {
 	c, err := r.clientFactory(r.set.Logger, r.config)
 	if err != nil {
-		r.set.Logger.Error("error setting up client", zap.Error(err))
-	} else {
-		r.client = c
+		return fmt.Errorf("error setting up client: %w", err)
 	}
+	r.client = c
 
 	// Check for logs pipeline
 	if r.logsConsumer == nil {
